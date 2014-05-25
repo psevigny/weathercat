@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<PluginConfig>
+
+	<Field id="varsFolder" type="textfield">
+		<Label>Create Variables in Folder</Label>
+		<Description>Folder in which WeatherCat variables will be created</Description>
+	</Field>
+
+	<Field id="showDebugInfo" type="checkbox">
+		<Label>Enable debuging:</Label>
+		<Description>(not recommended)</Description>
+	</Field>
+	
+</PluginConfig>

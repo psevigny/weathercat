@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<Actions>
+	<Action id="getWeatherCatVariables">
+		<Name>Get WeatherCat Variables</Name>
+		<CallbackMethod>updateWeatherCatVariables</CallbackMethod>
+	</Action>
+</Actions>
