@@ -17,6 +17,7 @@ WeatherCat Indigo Plugin
 
 ### Compatible Hardware
 This plugin has been tested with:
+
 * Indigo 6.0.12
 * WeatherCat 1.2.4
 
