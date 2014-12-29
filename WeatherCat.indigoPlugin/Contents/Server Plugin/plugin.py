@@ -96,19 +96,39 @@ indigoOtherVariableNames = {
 
 ################################################################################
 class Plugin(indigo.PluginBase):
+
+    availableChannels = []
+
     ########################################
     def __init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs):
         indigo.PluginBase.__init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs)
 
+        self.debug = pluginPrefs.get("showDebugInfo", False)
+        self.folderName = pluginPrefs.get("varsFolder", None)
+
         self.weathercat = None
         try:
             self.weathercat = app("WeatherCat")
+
+            # Probe for available working channels
+            self.debugLog("Available WeatherCat channels:")
+            for channelNum in range(1, self.weathercat.NumberOfChannels.get()):
+                self.weathercat.WorkingChannel.set(channelNum)
+                chanVar = self.getIndigoChannelVariableName(channelNum)
+
+                if self.weathercat.WorkingChannelStatus.get():
+                    chanName = self.weathercat.WorkingChannelName.get()
+                    chanValue = "%s" % round(self.weathercat.WorkingChannelValue.get(), 1)
+
+                    self.debugLog(" Channel %d (%s - %s): %s" % (channelNum, chanVar, chanName, chanValue))
+                    self.availableChannels.append(channelNum)
+
+                #else:
+                #    self.debugLog(" Channel %d (%s): not available" % (channelNum, chanVar))
+
         except Exception, e:
             self.debugLog("Error talking to WeatherCat:\n%s" % str(e))
             self.errorLog(kWeatherCatUnavailableMessage)
-
-        self.debug = pluginPrefs.get("showDebugInfo", False)
-        self.folderName = pluginPrefs.get("varsFolder", None)
 
     ########################################
     def __del__(self):
@@ -172,20 +192,15 @@ class Plugin(indigo.PluginBase):
                 folderId = folder.id
 
             # Update channel-based variables
-            for channelNum in range(1, self.weathercat.NumberOfChannels.get()):
+            for channelNum in self.availableChannels:
                 self.weathercat.WorkingChannel.set(channelNum)
                 chanVar = self.getIndigoChannelVariableName(channelNum)
+                chanName = self.weathercat.WorkingChannelName.get()
+                chanValue = "%s" % round(self.weathercat.WorkingChannelValue.get(), 1)
 
-                if self.weathercat.WorkingChannelStatus.get():
-                    chanName = self.weathercat.WorkingChannelName.get()
-                    chanValue = "%s" % round(self.weathercat.WorkingChannelValue.get(), 1)
+                self.debugLog("Channel %d (%s - %s): %s" % (channelNum, chanVar, chanName, chanValue))
 
-                    self.debugLog("Channel %d (%s - %s): %s" % (channelNum, chanVar, chanName, chanValue))
-
-                    self.updateIndigoVar(chanVar, chanValue, folderId)
-
-                else:
-                    self.debugLog("Channel %d (%s): not available" % (channelNum, chanVar))
+                self.updateIndigoVar(chanVar, chanValue, folderId)
 
             # Update other variables
             self.updateIndigoVar("WCT_current_conditions", self.weathercat.CurrentConditions.get(), folderId)
