@@ -10,10 +10,10 @@ WeatherCat Indigo Plugin
 
 ### Installation Instructions
 
-1. Download latest release [here](https://github.com/psevigny/fanlinc/releases)
+1. Download latest release [here](https://github.com/psevigny/weathercat/releases)
 2. Follow [standard plugin installation process](http://bit.ly/1e1Vc7b)
 3. (optional) Configure a Variables Folder where variables will be created
-4. Create a Schedule, Trigger, Action Group that uses the "Get WeatherCat Variables" action
+4. Configure the refresh interval, or create a Schedule/Trigger/Action Group that uses the "Get WeatherCat Variables" action
 
 ### Compatible Hardware
 This plugin has been tested with:
