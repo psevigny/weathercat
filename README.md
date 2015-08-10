@@ -5,7 +5,7 @@ WeatherCat Indigo Plugin
 
 ### Requirements
 
-1. [Indigo 6](http://www.perceptiveautomation.com/indigo/index.html) or later (pro version only)
+1. [Indigo 6](http://www.perceptiveautomation.com/indigo/index.html) or later (Pro version only)
 2. [WeatherCat](http://trixology.com/weathercat/)
 
 ### Installation Instructions
@@ -18,7 +18,7 @@ WeatherCat Indigo Plugin
 ### Compatible Hardware
 This plugin has been tested with:
 
-* Indigo 6.0.12
+* Indigo 6.1.1
 * WeatherCat 1.2.4
 
 ### Actions Supported
