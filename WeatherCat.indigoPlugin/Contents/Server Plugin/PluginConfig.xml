@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <PluginConfig>
 
-	<Field id="varsFolder" type="textfield">
+	<Field id="varsFolder" type="textfield" defaultValue="WeatherCat">
 		<Label>Create Variables in Folder</Label>
 		<Description>Folder in which WeatherCat variables will be created</Description>
 	</Field>
