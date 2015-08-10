@@ -2,6 +2,6 @@
 <Actions>
 	<Action id="getWeatherCatVariables">
 		<Name>Get WeatherCat Variables</Name>
-		<CallbackMethod>updateWeatherCatVariables</CallbackMethod>
+		<CallbackMethod>updateWeatherCatVariablesAction</CallbackMethod>
 	</Action>
 </Actions>

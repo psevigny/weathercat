@@ -10,7 +10,11 @@ from appscript import *
 # Globals
 ################################################################################
 weathercat = None
-kWeatherCatUnavailableMessage = u"WeatherCat doesn't appear to be installed on your system"
+
+kPrefVarsFolder = "varsFolder"
+kPrefRoundDigits = "roundDigits"
+kPrefPollInterval = "pollInterval"
+kPrefShowDebugInfo = "showDebugInfo"
 
 indigoChannelVariableNames = {
 1: "external_temperature",
@@ -98,13 +102,14 @@ indigoOtherVariableNames = {
 class Plugin(indigo.PluginBase):
 
     availableChannels = []
+    pollInterval = 0
+    roundDigits = 1
 
     ########################################
     def __init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs):
         indigo.PluginBase.__init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs)
 
-        self.debug = pluginPrefs.get("showDebugInfo", False)
-        self.folderName = pluginPrefs.get("varsFolder", None)
+        self.updateConfiguration()
 
         self.weathercat = None
         try:
@@ -118,35 +123,36 @@ class Plugin(indigo.PluginBase):
 
                 if self.weathercat.WorkingChannelStatus.get():
                     chanName = self.weathercat.WorkingChannelName.get()
-                    chanValue = "%s" % round(self.weathercat.WorkingChannelValue.get(), 1)
+                    chanValue = "%s" % round(self.weathercat.WorkingChannelValue.get(), self.roundDigits)
 
                     self.debugLog(" Channel %d (%s - %s): %s" % (channelNum, chanVar, chanName, chanValue))
                     self.availableChannels.append(channelNum)
 
-                #else:
-                #    self.debugLog(" Channel %d (%s): not available" % (channelNum, chanVar))
-
         except Exception, e:
             self.debugLog("Error talking to WeatherCat:\n%s" % str(e))
-            self.errorLog(kWeatherCatUnavailableMessage)
+            self.errorLog("WeatherCat is not running or not available")
 
     ########################################
     def __del__(self):
         indigo.PluginBase.__del__(self)
 
     ########################################
-    def runConcurrentThreadz(self):
+    def runConcurrentThread(self):
         try:
             while True:
-                if (self.weathercat != None):  # and (self.airfoil.isrunning()):
-                    self.debugLog("Polling WeatherCat")
-                    updateWeatherCatVariables()
+                if self.pollInterval > 0:
+                    if (self.weathercat != None):
+                        self.debugLog("Polling WeatherCat")
+                        self.updateWeatherCatVariables()
 
+                    else:
+                        if self.weathercat:
+                            self.errorLog("WeatherCat is not running or not available")
+
+                    self.sleep(self.pollInterval)
                 else:
-                    if self.weathercat:
-                        self.debugLog("WeatherCat is not running or not available")
-
-            self.sleep(60)
+                    # Check every 5 seconds if the poll interval has changed
+                    self.sleep(5)
 
         except self.StopThread:
             pass
@@ -171,15 +177,17 @@ class Plugin(indigo.PluginBase):
         return varname
 
     ########################################
-    def updateIndigoVar(self, name, value, folder):
+    def updateIndigoVar(self, name, label, value, folder):
         svalue = "%s" % value
         if name not in indigo.variables:
             indigo.variable.create(name, value=svalue, folder=folder)
         else:
             indigo.variable.updateValue(name, svalue)
 
+        self.debugLog("%s [%s]: %s" % (label, name, value))
+
     ########################################
-    def updateWeatherCatVariables(self, action):
+    def updateWeatherCatVariables(self):
         if self.weathercat:
 
             # Get variables folder (and create it, if necessary)
@@ -192,34 +200,79 @@ class Plugin(indigo.PluginBase):
                 folderId = folder.id
 
             # Update channel-based variables
-            for channelNum in self.availableChannels:
-                self.weathercat.WorkingChannel.set(channelNum)
-                chanVar = self.getIndigoChannelVariableName(channelNum)
+            for chanNum in self.availableChannels:
+                self.weathercat.WorkingChannel.set(chanNum)
+                chanVar = self.getIndigoChannelVariableName(chanNum)
                 chanName = self.weathercat.WorkingChannelName.get()
-                chanValue = "%s" % round(self.weathercat.WorkingChannelValue.get(), 1)
+                chanValue = ("%." + str(self.roundDigits) + "f") % self.weathercat.WorkingChannelValue.get()
+                #chanValue = "%s" % round(self.weathercat.WorkingChannelValue.get(), self.roundDigits)
+                label = "%s - Channel %d" % (chanName, chanNum)
 
-                self.debugLog("Channel %d (%s - %s): %s" % (channelNum, chanVar, chanName, chanValue))
-
-                self.updateIndigoVar(chanVar, chanValue, folderId)
+                self.updateIndigoVar(chanVar, label, chanValue, folderId)
 
             # Update other variables
-            self.updateIndigoVar("WCT_current_conditions", self.weathercat.CurrentConditions.get(), folderId)
-            self.updateIndigoVar("WCT_station_status", self.weathercat.StationDriverStatus.get(), folderId)
+            self.updateIndigoVar("WCT_current_conditions", "Current Conditions", self.weathercat.CurrentConditions.get(), folderId)
+            self.updateIndigoVar("WCT_station_status", "Station Status", self.weathercat.StationDriverStatus.get(), folderId)
 
             windCard = geo.direction_name(self.weathercat.WindDirection.get())
-            self.updateIndigoVar("WCT_winddirection_cardinal", windCard, folderId)
+            self.updateIndigoVar("WCT_winddirection_cardinal", "Wind Direction (cardinal)", windCard, folderId)
 
             lastUpdateTime = time.strftime("%Y-%m-%d %H:%M:%S")
-            self.updateIndigoVar("WCT_last_update", lastUpdateTime, folderId)
+            self.updateIndigoVar("WCT_last_update", "Last Update Time", lastUpdateTime, folderId)
 
     ########################################
-    def closedPrefsConfigUi(self, valuesDict, userCancelled):
-        if not userCancelled:
-            self.debug = valuesDict.get("showDebugInfo", False)
+    def updateWeatherCatVariablesAction(self, action):
+        self.updateWeatherCatVariables()
+
+    ########################################
+    def updateWeatherCatVariablesMenuItem(self):
+        self.updateWeatherCatVariables()
+
+    ########################################
+    def validatePrefsConfigUi(self, valuesDict):
+        errorsDict = indigo.Dict()
+
+        self.validatePositiveInteger(valuesDict, kPrefPollInterval, errorsDict)
+        self.validatePositiveInteger(valuesDict, kPrefRoundDigits, errorsDict)
+
+        if len(errorsDict) > 0:
+            return (False, valuesDict, errorsDict)
+        else:
+            return True
+
+    def validatePositiveInteger(self, valuesDict, prefKey, errorsDict):
+        try:
+            value = int(valuesDict.get(prefKey, 1))
+            if(value < 0):
+                errorsDict[prefKey] = "Value must be a positive integer"
+        except ValueError:
+            errorsDict[prefKey] = "Value must be an integer"
+
+    def updateConfiguration(self):
+            self.debug = self.pluginPrefs.get(kPrefShowDebugInfo, False)
             if self.debug:
                 indigo.server.log("Debug logging enabled")
             else:
                 indigo.server.log("Debug logging disabled")
+
+            self.folderName = self.pluginPrefs.get(kPrefVarsFolder, None)
+            self.debugLog("Variables folder set to %s" % self.folderName)
+
+            self.roundDigits = int(self.pluginPrefs.get(kPrefRoundDigits, 1))
+            self.debugLog("Rounding values to %d digits" % self.roundDigits)
+
+            self.pollInterval = int(self.pluginPrefs.get(kPrefPollInterval, 0))
+            if self.pollInterval == 0:
+                self.debugLog("Automatic refresh disabled")
+            else:
+                self.debugLog("Refresh interval set to %i seconds" % self.pollInterval)
+
+
+
+    ########################################
+    def closedPrefsConfigUi(self, valuesDict, userCancelled):
+        if not userCancelled:
+            self.updateConfiguration()
 
     ########################################
     # Menu Methods
@@ -227,9 +280,9 @@ class Plugin(indigo.PluginBase):
     def toggleDebugging(self):
         if self.debug:
             indigo.server.log("Turning off debug logging")
-            self.pluginPrefs["showDebugInfo"] = False
+            self.pluginPrefs[kPrefShowDebugInfo] = False
         else:
             indigo.server.log("Turning on debug logging")
-            self.pluginPrefs["showDebugInfo"] = True
+            self.pluginPrefs[kPrefShowDebugInfo] = True
         self.debug = not self.debug
 

@@ -1,5 +1,9 @@
 <?xml version="1.0"?>
 <MenuItems>
+    <MenuItem id="updateVariables">
+        <Name>Update WeatherCat Variables</Name>
+        <CallbackMethod>updateWeatherCatVariablesMenuItem</CallbackMethod>
+    </MenuItem>
 	<MenuItem id="toggleDebug">
 		<Name>Toggle Debugging</Name>
         <CallbackMethod>toggleDebugging</CallbackMethod>

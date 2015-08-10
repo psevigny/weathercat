@@ -6,8 +6,16 @@
 		<Description>Folder in which WeatherCat variables will be created</Description>
 	</Field>
 
+    <Field id="roundDigits" type="textfield" defaultValue="1">
+        <Label>Value rounding digits</Label>
+    </Field>
+
+    <Field id="pollInterval" type="textfield" defaultValue="60">
+        <Label>Refresh Interval (in seconds, 0 to disable)</Label>
+    </Field>
+
 	<Field id="showDebugInfo" type="checkbox">
-		<Label>Enable debuging:</Label>
+		<Label>Enable debugging:</Label>
 		<Description>(not recommended)</Description>
 	</Field>
 	
